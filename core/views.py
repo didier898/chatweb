@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 from core.forms import SignUpForm
-
+from core.models import Message
 
 
 def index(request):
@@ -27,12 +27,10 @@ def index(request):
 
 
 def register_view(request):
-    """
-    Render registration template
-    """
     if request.method == 'POST':
         print("working1")
         form = SignUpForm(request.POST)
+        print(form)
         if form.is_valid():
             user = form.save(commit=False)
             username = form.cleaned_data['username']
@@ -52,5 +50,19 @@ def register_view(request):
     return render(request, template, context)
 
 
+def chat_view(request):
+    if not request.user.is_authenticated:
+        return redirect('index')
+    if request.method == "GET":
+        return render(request, 'chat/chats.html',
+                      {'users': User.objects.exclude(username=request.user.username)})
 
-
+def message_view(request, sender, receiver):
+    if not request.user.is_authenticated:
+        return redirect('index')
+    if request.method == "GET":
+        return render(request, "chat/messages.html",
+                      {'users': User.objects.exclude(username=request.user.username),
+                       'receiver': User.objects.get(id=receiver),
+                       'messages': Message.objects.filter(sender_id=sender, receiver_id=receiver) |
+                                   Message.objects.filter(sender_id=receiver, receiver_id=sender)})
